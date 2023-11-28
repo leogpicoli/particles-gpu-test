@@ -1,0 +1,23 @@
+{
+  "name": "interactive-bulletin",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Code to create an interactive website for the bulletin",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build",
+    "dev": "vite",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.157.0",
+    "vite": "^4.4.9"
+  },
+  "devDependencies": {
+    "vite-plugin-glsl": "^1.1.2"
+  }
+}
