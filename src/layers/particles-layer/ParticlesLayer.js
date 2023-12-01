@@ -5,6 +5,9 @@ import drawParticlesFragmentShader from './shaders/draw/fragment.glsl'
 import updateParticlesVertexShader from './shaders/update/vertex.glsl'
 import updateParticlesFragmentShader from './shaders/update/fragment.glsl'
 
+import decayVertexShader from './shaders/decay/vertex.glsl'
+import decayFragmentShader from './shaders/decay/fragment.glsl'
+
 import screenVertexShader from './shaders/screen/vertex.glsl'
 import screenFragmentShader from './shaders/screen/fragment.glsl'
 
@@ -46,7 +49,9 @@ const ParticlesLayer = L.Layer.extend({
             pixelRatio: Math.min(window.devicePixelRatio, 2)
         }
 
-        this.particlesRes = 100
+        this.particlesRes = 50
+
+        this._screenGeometry = new THREE.PlaneGeometry(2, 2);
 
         this._numParticles = this.particlesRes * this.particlesRes
 
@@ -59,12 +64,15 @@ const ParticlesLayer = L.Layer.extend({
         this._screenRenderTarget = this._initScreenRenderTarget()
 
         this._scene = new THREE.Scene()
+        this._decayScene = new THREE.Scene()
+
         this._particlesUpdateScene = new THREE.Scene()
         this._particlesDrawScene = new THREE.Scene()
 
         this._initParticlesDrawScene();
         this._initParticlesUpdateScene();
         this._initScreenScene();
+        this._initDecayScene();
 
         this._camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
@@ -198,7 +206,6 @@ const ParticlesLayer = L.Layer.extend({
         this._particlesUpdateScene.add(particlesUpdateMesh);
     },
     _initScreenScene: function () {
-        const screenGeometry = new THREE.PlaneGeometry(2, 2);
         this._screenMaterial = new THREE.ShaderMaterial({
             vertexShader: screenVertexShader,
             fragmentShader: screenFragmentShader,
@@ -207,11 +214,29 @@ const ParticlesLayer = L.Layer.extend({
                 u_Opacity: { value: 1.0 },
             },
             depthWrite: false,
-            transparent: false,
+            transparent: true,
         })
-        const screenMesh = new THREE.Mesh(screenGeometry, this._screenMaterial)
+        const screenMesh = new THREE.Mesh(this._screenGeometry, this._screenMaterial)
         this._scene.add(screenMesh)
     },
+    _initDecayScene: function () {
+        this._decayMaterial = new THREE.ShaderMaterial({
+            vertexShader: decayVertexShader,
+            fragmentShader: decayFragmentShader,
+            uniforms: {
+                u_Screen: { value: this._screenRenderTarget.current.texture },
+                u_resolution: { value: new THREE.Vector2( //TODO: update when resize
+                  this.sizes.width * this.sizes.pixelRatio,
+                  this.sizes.height * this.sizes.pixelRatio
+                  )}
+            },
+            depthWrite: false,
+            transparent: true,
+        })
+        const decayMesh = new THREE.Mesh(this._screenGeometry, this._decayMaterial)
+        this._decayScene.add(decayMesh)
+    },
+
     reposition: function () {
         // Update canvas position
         L.DomUtil.setPosition(
@@ -268,30 +293,39 @@ const ParticlesLayer = L.Layer.extend({
         const idTarget = this.frame % 2
         const idPrev = 1 - idTarget
 
-        // Updating render target
+        // Swap render targets
         this._particlesUpdateRenderTarget.current = this._particlesUpdateRenderTarget[idTarget]
         this._screenRenderTarget.current = this._screenRenderTarget[idTarget]
 
         // Using texture from previous target to render new target
         this._particlesUpdateMaterial.uniforms.u_ParticlesTexture.value = this._particlesUpdateRenderTarget[idPrev].texture
-        this._screenMaterial.uniforms.u_Screen.value = this._screenRenderTarget[idPrev].texture
-
+        
         // Updating random seed to avoid particles degeneration
         this._particlesUpdateMaterial.uniforms.u_RandomSeed.value = Math.random()
 
-        // Render
+        // Render physics update:
         this._renderer.setRenderTarget(this._particlesUpdateRenderTarget.current)
         this._renderer.render(this._particlesUpdateScene, this._camera)
 
-        this._screenMaterial.uniforms.u_Opacity.value = this.particlesOpacity
-        this._screenMaterial.blending = THREE.NormalBlending
+        // render particles on texture (_screenRenderTarget):
+        const screenTexture = this._screenRenderTarget[idPrev].texture
+        this._decayMaterial.uniforms.u_Screen.value = screenTexture
+        //screenTexture.minFilter = THREE.LinearFilter
+        //screenTexture.magFilter = THREE.LinearFilter
+
         this._renderer.setRenderTarget(this._screenRenderTarget.current)
         this._renderer.autoClear = false
-        this._renderer.render(this._scene, this._camera)
-        this._renderer.render(this._particlesDrawScene, this._camera)
+        this._renderer.setClearAlpha(0);
+        this._renderer.clearColor();
+        this._renderer.render(this._decayScene, this._camera) // draw previous particles
+        this._renderer.render(this._particlesDrawScene, this._camera) // draw new particles
 
-        this._screenMaterial.blending = THREE.CustomBlending
-        this._screenMaterial.uniforms.u_Opacity.value = 1.0
+
+        // render to screen:
+        this._screenMaterial.uniforms.u_Screen.value = this._screenRenderTarget[idPrev].texture
+        this._screenMaterial.uniforms.u_Opacity.value = this.particlesOpacity
+        //this._screenMaterial.blending = THREE.NoBlending
+        //this._screenMaterial.uniforms.u_Opacity.value = 1.0
         this._renderer.setRenderTarget(null)
         this._renderer.autoClear = true
         this._renderer.setClearAlpha(0.0)

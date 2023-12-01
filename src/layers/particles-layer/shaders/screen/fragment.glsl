@@ -7,4 +7,8 @@ void main() {
     vec4 color = texture2D(u_Screen, v_TextureCoords);
     // a hack to guarantee opacity fade out even with a value close to 1.0
     gl_FragColor = vec4(floor(255.0 * color * u_Opacity) / 255.0);
+
+    gl_FragColor =  vec4(1., 1., 1., color.a * color.g);
+    // DEBUG RENDERS:
+    //gl_FragColor = vec4(color.rgb, 0.1);
 }
