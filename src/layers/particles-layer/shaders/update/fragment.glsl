@@ -96,7 +96,7 @@ void main()
     vec2 pSeed = (pCoords + v_TextureCoords) * u_RandomSeed;
 
     float pSpeed = length(current) / length(u_MaxCurrent);
-    float dropRate = u_DropRate + pSpeed * u_DropRateBump;
+    float dropRate = u_DropRate + 0.001 / pSpeed;
     float drop = step(1.0 - dropRate, rand(pSeed));
 
     vec2 randomPos = vec2(

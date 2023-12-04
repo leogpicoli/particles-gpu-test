@@ -46,11 +46,11 @@ const ParticlesLayer = L.Layer.extend({
             pixelRatio: Math.min(window.devicePixelRatio, 2)
         }
 
-        this.particlesRes = 100
+        this.particlesRes = 40
 
         this._numParticles = this.particlesRes * this.particlesRes
 
-        this.particlesOpacity = 0.99
+        this.particlesOpacity = 0.95
 
         this._particlesTexture = this._initParticlesTexture()
         this._currentsTexture = await this._initCurrentsTexture('data/currents.png')
@@ -167,7 +167,7 @@ const ParticlesLayer = L.Layer.extend({
                 u_ParticlesTexture: { value: this._particlesUpdateRenderTarget.current.texture },
                 u_ParticlesRes: { value: this.particlesRes },
             },
-            transparent: false
+            transparent: true,
         })
 
         const points = new THREE.Points(particlesDrawGeometry, this._particlesDrawMaterial)
@@ -207,7 +207,6 @@ const ParticlesLayer = L.Layer.extend({
                 u_Opacity: { value: 1.0 },
             },
             depthWrite: false,
-            transparent: false,
         })
         const screenMesh = new THREE.Mesh(screenGeometry, this._screenMaterial)
         this._scene.add(screenMesh)
@@ -230,7 +229,6 @@ const ParticlesLayer = L.Layer.extend({
         this._particlesUpdateMaterial.uniforms.u_Resolution.value = new THREE.Vector2(window.innerWidth, window.innerHeight)
     },
     clear: function () {
-        // this._screenMaterial.blending = THREE.NormalBlending
         this._renderer.setRenderTarget(this._screenRenderTarget[0])
         this._renderer.clear()
 
@@ -284,13 +282,13 @@ const ParticlesLayer = L.Layer.extend({
         this._renderer.render(this._particlesUpdateScene, this._camera)
 
         this._screenMaterial.uniforms.u_Opacity.value = this.particlesOpacity
-        this._screenMaterial.blending = THREE.NormalBlending
         this._renderer.setRenderTarget(this._screenRenderTarget.current)
+        // this._screenMaterial.blending = THREE.NormalBlending
         this._renderer.autoClear = false
         this._renderer.render(this._scene, this._camera)
         this._renderer.render(this._particlesDrawScene, this._camera)
 
-        this._screenMaterial.blending = THREE.CustomBlending
+        // this._screenMaterial.blending = THREE.CustomBlending
         this._screenMaterial.uniforms.u_Opacity.value = 1.0
         this._renderer.setRenderTarget(null)
         this._renderer.autoClear = true
