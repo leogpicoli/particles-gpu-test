@@ -19,6 +19,10 @@ export const currentsInfo = {
         min: -1.374261736869812,
         max: 1.3809068202972412
     },
+    m: {
+        min: 0.0,
+        max: 1.3973057270050049
+    },
     sw: {
         lat: 30.000852584838867,
         lon: -5.492567539215088
@@ -46,11 +50,11 @@ const ParticlesLayer = L.Layer.extend({
             pixelRatio: Math.min(window.devicePixelRatio, 2)
         }
 
-        this.particlesRes = 40
+        this.particlesRes = Math.floor(Math.sqrt(5000))
 
         this._numParticles = this.particlesRes * this.particlesRes
 
-        this.particlesOpacity = 0.95
+        this.particlesOpacity = 0.96
 
         this._particlesTexture = this._initParticlesTexture()
         this._currentsTexture = await this._initCurrentsTexture('data/currents.png')
@@ -165,7 +169,16 @@ const ParticlesLayer = L.Layer.extend({
             fragmentShader: drawParticlesFragmentShader,
             uniforms: {
                 u_ParticlesTexture: { value: this._particlesUpdateRenderTarget.current.texture },
+                u_Currents: { value: this._currentsTexture },
                 u_ParticlesRes: { value: this.particlesRes },
+                u_MinCurrent: { value: new THREE.Vector3(currentsInfo.u.min, currentsInfo.v.min, currentsInfo.m.min) },
+                u_MaxCurrent: { value: new THREE.Vector3(currentsInfo.u.max, currentsInfo.v.max, currentsInfo.m.max) },
+                u_Resolution: { value: new THREE.Vector2(this.sizes.width, this.sizes.height) },
+                u_MapScale: { value: 16384 },
+                u_MapPane: { value: new THREE.Vector2(0, 0) },
+                u_MapOrigin: { value: new THREE.Vector2(7743, 5892) },
+                u_SouthWestLimit: { value: new THREE.Vector2(currentsInfo.sw.lon, currentsInfo.sw.lat) },
+                u_NorthEastLimit: { value: new THREE.Vector2(currentsInfo.ne.lon, currentsInfo.ne.lat) },
             },
             transparent: true,
         })
@@ -182,8 +195,8 @@ const ParticlesLayer = L.Layer.extend({
                 u_ParticlesRes: { value: this.particlesRes },
                 u_ParticlesTexture: { value: this._particlesTexture },
                 u_Currents: { value: this._currentsTexture },
-                u_MinCurrent: { value: new THREE.Vector2(currentsInfo.u.min, currentsInfo.v.min) },
-                u_MaxCurrent: { value: new THREE.Vector2(currentsInfo.u.max, currentsInfo.v.max) },
+                u_MinCurrent: { value: new THREE.Vector3(currentsInfo.u.min, currentsInfo.v.min, currentsInfo.m.min) },
+                u_MaxCurrent: { value: new THREE.Vector3(currentsInfo.u.max, currentsInfo.v.max, currentsInfo.m.max) },
                 u_RandomSeed: { value: Math.random() },
                 u_Resolution: { value: new THREE.Vector2(this.sizes.width, this.sizes.height) },
                 u_MapScale: { value: 16384 },
@@ -227,6 +240,11 @@ const ParticlesLayer = L.Layer.extend({
         this._particlesUpdateMaterial.uniforms.u_MapPane.value = new THREE.Vector2(mapPanePos.x, mapPanePos.y)
         this._particlesUpdateMaterial.uniforms.u_MapOrigin.value = new THREE.Vector2(mapOriginPos.x, mapOriginPos.y)
         this._particlesUpdateMaterial.uniforms.u_Resolution.value = new THREE.Vector2(window.innerWidth, window.innerHeight)
+
+        this._particlesDrawMaterial.uniforms.u_MapScale.value = scale
+        this._particlesDrawMaterial.uniforms.u_MapPane.value = new THREE.Vector2(mapPanePos.x, mapPanePos.y)
+        this._particlesDrawMaterial.uniforms.u_MapOrigin.value = new THREE.Vector2(mapOriginPos.x, mapOriginPos.y)
+        this._particlesDrawMaterial.uniforms.u_Resolution.value = new THREE.Vector2(window.innerWidth, window.innerHeight)
     },
     clear: function () {
         this._renderer.setRenderTarget(this._screenRenderTarget[0])
@@ -283,12 +301,10 @@ const ParticlesLayer = L.Layer.extend({
 
         this._screenMaterial.uniforms.u_Opacity.value = this.particlesOpacity
         this._renderer.setRenderTarget(this._screenRenderTarget.current)
-        // this._screenMaterial.blending = THREE.NormalBlending
         this._renderer.autoClear = false
         this._renderer.render(this._scene, this._camera)
         this._renderer.render(this._particlesDrawScene, this._camera)
 
-        // this._screenMaterial.blending = THREE.CustomBlending
         this._screenMaterial.uniforms.u_Opacity.value = 1.0
         this._renderer.setRenderTarget(null)
         this._renderer.autoClear = true

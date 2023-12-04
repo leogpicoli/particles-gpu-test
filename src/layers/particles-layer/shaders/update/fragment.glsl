@@ -6,8 +6,8 @@
 
 uniform sampler2D u_ParticlesTexture;
 uniform sampler2D u_Currents;
-uniform vec2 u_MinCurrent;
-uniform vec2 u_MaxCurrent;
+uniform vec3 u_MinCurrent;
+uniform vec3 u_MaxCurrent;
 uniform float u_RandomSeed;
 
 uniform vec2 u_Resolution;
@@ -74,9 +74,9 @@ vec2 getParticleCoords(vec2 tCoords) {
     );
 }
 
-float u_SpeedFactor = 0.0005;
-float u_DropRate = 0.003;
-float u_DropRateBump = 0.01;
+float u_SpeedFactor = 0.0004;
+float u_DropRate = 0.0005;
+float u_DropRateBump = 0.0003;
 
 void main()
 {
@@ -87,7 +87,7 @@ void main()
 
     vec2 currentTexCoords = remap(lonLat, u_SouthWestLimit, u_NorthEastLimit, vec2(0.0), vec2(1.0));
     vec4 cCurrent = texture2D(u_Currents, currentTexCoords);
-    vec2 current = mix(u_MinCurrent, u_MaxCurrent, cCurrent.rg);
+    vec2 current = mix(u_MinCurrent.xy, u_MaxCurrent.xy, cCurrent.rg);
 
     vec2 pOffset = vec2(current.x, current.y) * u_SpeedFactor;
 
@@ -95,8 +95,8 @@ void main()
 
     vec2 pSeed = (pCoords + v_TextureCoords) * u_RandomSeed;
 
-    float pSpeed = length(current) / length(u_MaxCurrent);
-    float dropRate = u_DropRate + 0.001 / pSpeed;
+    float pSpeed = length(current) / u_MaxCurrent.z;
+    float dropRate = u_DropRate + u_DropRateBump / pSpeed;
     float drop = step(1.0 - dropRate, rand(pSeed));
 
     vec2 randomPos = vec2(

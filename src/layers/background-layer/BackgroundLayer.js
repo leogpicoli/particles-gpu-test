@@ -94,8 +94,8 @@ export const BackgroundLayer = L.Layer.extend({
                 scale: { value: 0.0 },
 
 
-                minCurrent: { value: new THREE.Vector2(currentsInfo.u.min, currentsInfo.v.min) },
-                maxCurrent: { value: new THREE.Vector2(currentsInfo.u.max, currentsInfo.v.max) },
+                minCurrent: { value: new THREE.Vector3(currentsInfo.u.min, currentsInfo.v.min, currentsInfo.m.min) },
+                maxCurrent: { value: new THREE.Vector3(currentsInfo.u.max, currentsInfo.v.max, currentsInfo.m.max) },
                 southWestLimit: { value: new THREE.Vector2(currentsInfo.sw.lon, currentsInfo.sw.lat) },
                 northEastLimit: { value: new THREE.Vector2(currentsInfo.ne.lon, currentsInfo.ne.lat) },
 

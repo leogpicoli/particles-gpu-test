@@ -23,8 +23,8 @@ uniform vec2 northEastLimit;
 uniform vec2 mapPane;
 uniform vec2 mapOrigin;
 uniform vec2 resolution;
-uniform vec2 minCurrent;
-uniform vec2 maxCurrent;
+uniform vec3 minCurrent;
+uniform vec3 maxCurrent;
 
 uniform bool readFromTexture;
 uniform vec3 defaultColor;
@@ -74,8 +74,6 @@ bool isOutOfBounds(vec2 lonlat) {
     return false;
 }
 
-vec4 colour_ocean = vec4(64.0, 77.0, 144.0, 255.0) / 255.0;
-
 void main(void) {
     if (!readFromTexture) {
         gl_FragColor = vec4(defaultColor / 255.0, 1.0);
@@ -87,7 +85,8 @@ void main(void) {
     vec2 lonLatCoords = pixelToLonLat(pixelCoords);
 
     if (isOutOfBounds(lonLatCoords)) {
-        gl_FragColor = colour_ocean;
+        TextureColor text = textureColors[0];
+        gl_FragColor = vec4(text.color / 255.0, 1.0);;
         return;
     }
     
@@ -97,13 +96,8 @@ void main(void) {
     );
   
     vec4 currentsSample = texture2D(currents, uvs);
-    vec2 speed = mix(minCurrent, maxCurrent, currentsSample.rg); 
-    float m = distance(speed, vec2(0.0)) * 1.4;
-
-    if (currentsSample.a == 0.0) {
-        gl_FragColor = colour_ocean;
-        return;
-    }
+    vec2 speed = mix(minCurrent.xy, maxCurrent.xy, currentsSample.rg); 
+    float m = length(speed);
 
     vec3 colour = vec3(0.0);
 
